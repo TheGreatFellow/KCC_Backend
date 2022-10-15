@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
+const cors = require("cors");
 
 const serviceAccount = require("./kimberly-clark-adb29-firebase-adminsdk-hfvyp-d594c68128.json");
 
@@ -11,8 +12,9 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const app = express();
+app.use(cors());
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/checkUsername", (req, res) => {
   const { username } = req.query;
@@ -39,7 +41,6 @@ app.post("/postUserProfile", (req, res) => {
     partnerUsername,
     genderOfBaby,
     ageOfBaby,
-    mobileNumber,
   } = req.body;
   db.collection("users")
     .doc(uid)
@@ -52,7 +53,6 @@ app.post("/postUserProfile", (req, res) => {
       partnerUsername,
       genderOfBaby,
       ageOfBaby,
-      mobileNumber,
       xp: 0,
       lastLoginDate: new Date(),
       streak: 0,
@@ -63,6 +63,48 @@ app.post("/postUserProfile", (req, res) => {
     .catch((err) => {
       res.status(500).send(err);
     });
+});
+
+app.post("/getDiseaseFromSymptoms", (req, res) => {
+  const diseases = [
+    {
+      name: "Diaper Rash",
+      symptoms: ["isItchy", "isReddish", "isMoist", "isGenital", "isThigh"],
+    },
+    {
+      name: "Psoriasis",
+      symptoms: ["isItchy", "isScaly", "isScalp", "isElbow", "isPainful"],
+    },
+    {
+      name: "Candidasis",
+      symptoms: [
+        "isScalp",
+        "isGenital",
+        "isMouth",
+        "isMoist",
+        "isTropical",
+        "isItchy",
+      ],
+    },
+  ];
+  const { symptoms } = req.body;
+  let maxScore = {
+    value: 0,
+    index: 0,
+  };
+  diseases.forEach((element, i) => {
+    let score = 0;
+    element.symptoms.forEach((element) => {
+      if (symptoms.includes(element)) {
+        score++;
+      }
+    });
+    if (score > maxScore.value) {
+      maxScore.value = score;
+      maxScore.index = i;
+    }
+  });
+  res.send({ disease: diseases[maxScore.index].name });
 });
 
 app.get("/getUserProfile", (req, res) => {
